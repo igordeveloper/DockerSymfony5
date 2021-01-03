@@ -1,0 +1,68 @@
+version: '3'
+
+networks:
+    test_api:
+
+services:
+
+    # nginx
+    nginx-service:
+        image: nginx:stable-alpine
+        container_name: nginx-container
+        ports:
+            - "8080:80"
+        volumes:
+            - ./appTestApi:/var/www/appTestApi
+            - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
+        depends_on:
+            - php-service
+            - mariadb-service
+        networks:
+            - test_api
+
+    # php
+    php-service:
+        build:
+            context: .
+            dockerfile: ./php/Dockerfile
+        container_name: php-container
+        ports:
+            - "9000:9000"
+        volumes:
+            - ./appTestApi:/var/www/appTestApi
+            - ./php/custom.ini:/usr/local/etc/php/conf.d/custom.ini
+        networks:
+            - test_api
+
+    # mysql
+    mariadb-service:
+        image: mariadb:10.3
+        container_name: mariadb-container
+        ports:
+            - "4306:3306"
+        volumes:
+            - ./mysql:/var/lib/mysql
+        command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+        restart: always # always restart unless stopped manually
+        environment:
+            MYSQL_DATABASE: test_api
+            MYSQL_USER: test_api
+            MYSQL_ROOT_PASSWORD: Roo@tk1122
+            MYSQL_PASSWORD: 1122
+        networks:
+            - test_api
+
+    # phpadmin
+    phpmyadmin-service:
+        image: phpmyadmin
+        restart: always
+        container_name: phpmyadmin-container
+        ports:
+          - 9090:80
+        environment:
+          - PMA_ARBITRARY=1
+        depends_on:
+            - php-service
+            - mariadb-service
+        networks:
+            - test_api
